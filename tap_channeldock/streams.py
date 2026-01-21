@@ -428,3 +428,149 @@ class OrdersStream(ChanneldockStream):
             The updated_at_to used in the request.
         """
         return self._current_end_date
+
+
+class DeliveriesStream(ChanneldockStream):
+    """Deliveries stream from Channeldock Seller API.
+    
+    Endpoint: GET /portal/api/v2/seller/deliveries
+    Documentation: Returns pending and historical deliveries including
+    supplier information, delivery status, dates, and line items.
+    
+    Delivery types: inbound, outbound, bol_outbound, amazon_outbound
+    
+    Uses updated_at for incremental sync. Supports filtering by delivery_type
+    via the tap config property 'delivery_types'.
+    """
+
+    name = "deliveries"
+    path = "/portal/api/v2/seller/delivery"
+    primary_keys = ["id"]
+    replication_key = "updated_at"
+    replication_method = "INCREMENTAL"
+
+    records_jsonpath = "$.deliveries[*]"
+    
+    # Store the end_date used in the request to save as bookmark
+    _current_end_date: str | None = None
+
+    schema = th.PropertiesList(
+        # Primary key
+        th.Property("id", th.IntegerType, required=True, description="Delivery ID"),
+        
+        # Delivery info
+        th.Property("delivery_type", th.StringType, description="Type: inbound, outbound, bol_outbound, amazon_outbound"),
+        th.Property("ref", th.StringType, description="Reference code"),
+        th.Property("status", th.StringType, description="Status: new, confirmed, delivered, stocked, shipped, cancelled"),
+        
+        # Dates
+        th.Property("delivery_date", th.DateType, description="Planned delivery date"),
+        th.Property("stocked_at", th.DateTimeType, description="Stocked timestamp"),
+        th.Property("created_at", th.DateTimeType, description="Creation timestamp"),
+        th.Property("updated_at", th.DateTimeType, description="Last update timestamp - replication key"),
+        
+        # Quantities
+        th.Property("pallets", th.IntegerType, description="Number of pallets"),
+        th.Property("boxes", th.IntegerType, description="Number of boxes"),
+        
+        # Supplier
+        th.Property("supplier_id", th.IntegerType, description="Supplier ID"),
+        th.Property("supplier", th.StringType, description="Supplier details (JSON object)"),
+        
+        # Center
+        th.Property("center_id", th.IntegerType, description="Fulfillment center ID"),
+        
+        # Additional info
+        th.Property("extra_description", th.StringType, description="Extra description/notes"),
+        
+        # Items
+        th.Property("items", th.StringType, description="Delivery line items (JSON array)"),
+    ).to_dict()
+
+    def get_url_params(
+        self,
+        context: Context | None,
+        next_page_token: int | None,
+    ) -> dict[str, t.Any]:
+        """Return URL query parameters for the request.
+
+        Uses updated_at for incremental sync filtering.
+        Applies delivery_type filter from config if single type specified.
+
+        Args:
+            context: Stream partition context.
+            next_page_token: Page number for pagination.
+
+        Returns:
+            Dictionary of URL parameters.
+        """
+        params: dict[str, t.Any] = {
+            "page": next_page_token or 1,
+        }
+        
+        # Use updated_at sorting for incremental sync
+        params["sort_attr"] = "updated_at"
+        params["sort_dir"] = "ASC"  # Oldest first to process chronologically
+        
+        # Get bookmark value for updated_at filter
+        bookmark_value = self.get_starting_replication_key_value(context)
+        if bookmark_value:
+            # API returns deliveries with updated_at > value
+            params["updated_at"] = bookmark_value
+            self.logger.info(f"[{self.name}] Using updated_at from bookmark: {bookmark_value}")
+        
+        # Apply delivery_type filter if specified in config
+        delivery_type = self.config.get("delivery_type")
+        if delivery_type:
+            params["delivery_type"] = delivery_type
+            self.logger.info(f"[{self.name}] Filtering by delivery_type: {delivery_type}")
+        
+        # Set current end date for bookmark
+        self._current_end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        self.logger.info(f"[{self.name}] Sync end_date: {self._current_end_date}")
+        
+        return params
+
+    def post_process(
+        self,
+        row: dict,
+        context: Context | None = None,
+    ) -> dict | None:
+        """Post-process a record.
+
+        Convert complex fields to JSON strings.
+
+        Args:
+            row: The record to process.
+            context: Stream partition context.
+
+        Returns:
+            The processed record, or None to skip.
+        """
+        if not row:
+            return None
+
+        # Convert complex fields to JSON strings
+        json_fields = ["supplier", "items"]
+        for field in json_fields:
+            if field in row and row[field] is not None:
+                if isinstance(row[field], (list, dict)):
+                    row[field] = json.dumps(row[field])
+            else:
+                row[field] = None
+
+        return row
+
+    def get_replication_key_signpost(
+        self,
+        context: Context | None = None,
+    ) -> str | None:
+        """Return the signpost for replication key.
+
+        Args:
+            context: Stream partition context.
+
+        Returns:
+            The end_date used in the request.
+        """
+        return self._current_end_date

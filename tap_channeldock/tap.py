@@ -5,12 +5,18 @@ from typing import List
 from singer_sdk import Stream, Tap
 from singer_sdk import typing as th
 
-from tap_channeldock.streams import OrdersStream, ProductsStream, SuppliersStream
+from tap_channeldock.streams import (
+    DeliveriesStream,
+    OrdersStream,
+    ProductsStream,
+    SuppliersStream,
+)
 
 STREAM_TYPES = [
     ProductsStream,
     SuppliersStream,
     OrdersStream,
+    DeliveriesStream,
 ]
 
 
@@ -36,6 +42,14 @@ class TapChanneldock(Tap):
             "start_date",
             th.DateTimeType,
             description="The earliest date to sync data from (ISO 8601 format)",
+        ),
+        th.Property(
+            "delivery_type",
+            th.StringType,
+            description=(
+                "Filter deliveries by type. Valid values: inbound, outbound, "
+                "bol_outbound, amazon_outbound. If not set, all types are synced."
+            ),
         ),
     ).to_dict()
 
