@@ -5,24 +5,15 @@ from typing import List
 from singer_sdk import Stream, Tap
 from singer_sdk import typing as th
 
-# from tap_channeldock.streams import ()
+from tap_channeldock.streams import ProductsStream
 
-STREAM_TYPES = []
+STREAM_TYPES = [
+    ProductsStream,
+]
 
 
 class TapChanneldock(Tap):
     """Channeldock tap class."""
-
-    def __init__(
-        self,
-        config=None,
-        catalog=None,
-        state=None,
-        parse_env_config=False,
-        validate_config=True,
-    ) -> None:
-        self.config_file = config[0] if config else None
-        super().__init__(config, catalog, state, parse_env_config, validate_config)
 
     name = "tap-channeldock"
 

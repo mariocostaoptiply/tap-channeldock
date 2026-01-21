@@ -11,9 +11,9 @@ license = "Apache 2.0"
 packages = [{include = "tap_channeldock"}]
 
 [tool.poetry.dependencies]
-python = "<3.11,>=3.7.1"
+python = ">=3.8,<3.12"
 requests = "^2.25.1"
-singer-sdk = "^0.5.0"
+singer-sdk = "^0.30.0"
 cached-property = "1.5.2"
 
 [tool.poetry.dev-dependencies]
