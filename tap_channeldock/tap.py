@@ -5,11 +5,12 @@ from typing import List
 from singer_sdk import Stream, Tap
 from singer_sdk import typing as th
 
-from tap_channeldock.streams import ProductsStream, SuppliersStream
+from tap_channeldock.streams import OrdersStream, ProductsStream, SuppliersStream
 
 STREAM_TYPES = [
     ProductsStream,
     SuppliersStream,
+    OrdersStream,
 ]
 
 

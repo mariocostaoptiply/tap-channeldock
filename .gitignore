@@ -3,6 +3,9 @@
 .secrets/
 .secret/
 
+# Local utility scripts
+singer_to_csv.py
+
 # Ignore meltano internal cache and sqlite systemdb
 
 .meltano/
