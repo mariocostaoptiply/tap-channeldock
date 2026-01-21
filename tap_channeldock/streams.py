@@ -172,3 +172,67 @@ class ProductsStream(ChanneldockStream):
             The end_date used in the request.
         """
         return self._current_end_date
+
+
+class SuppliersStream(ChanneldockStream):
+    """Suppliers stream from Channeldock Seller API.
+    
+    Endpoint: GET /portal/api/v2/seller/suppliers
+    Documentation: Returns all suppliers associated with the seller account.
+    Suppliers can be assigned to inbound deliveries or directly to products.
+    
+    This is a FULL_TABLE stream as the API does not support date filtering.
+    """
+
+    name = "suppliers"
+    path = "/portal/api/v2/seller/suppliers"
+    primary_keys = ["id"]
+    replication_key = None
+    replication_method = "FULL_TABLE"
+
+    records_jsonpath = "$.suppliers[*]"
+
+    schema = th.PropertiesList(
+        # Primary key
+        th.Property("id", th.IntegerType, required=True, description="Internal supplier ID"),
+        
+        # Contact info
+        th.Property("firstname", th.StringType, description="Contact first name"),
+        th.Property("lastname", th.StringType, description="Contact last name"),
+        th.Property("company", th.StringType, description="Company name"),
+        th.Property("phone", th.StringType, description="Phone number"),
+        th.Property("email", th.StringType, description="Email address"),
+        
+        # Address
+        th.Property("address1", th.StringType, description="Address line 1"),
+        th.Property("address2", th.StringType, description="Address line 2"),
+        th.Property("city", th.StringType, description="City"),
+        th.Property("state", th.StringType, description="State / region"),
+        th.Property("zipcode", th.StringType, description="Postal code"),
+        th.Property("country", th.StringType, description="Country code (ISO)"),
+        
+        # Business info
+        th.Property("payment_term", th.IntegerType, description="Payment term in days"),
+        th.Property("website", th.StringType, description="Company website"),
+        th.Property("vat", th.IntegerType, description="Indicates if VAT applies (0/1)"),
+        th.Property("vat_number", th.StringType, description="VAT number"),
+    ).to_dict()
+
+    def get_url_params(
+        self,
+        context: Context | None,
+        next_page_token: int | None,
+    ) -> dict[str, t.Any]:
+        """Return URL query parameters for the request.
+
+        Args:
+            context: Stream partition context.
+            next_page_token: Page number for pagination.
+
+        Returns:
+            Dictionary of URL parameters.
+        """
+        params: dict[str, t.Any] = {
+            "page": next_page_token or 1,
+        }
+        return params

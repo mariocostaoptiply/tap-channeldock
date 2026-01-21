@@ -37,6 +37,7 @@ class ChanneldockPaginator(BaseAPIPaginator[int]):
         """Get the next page number from response.
 
         Checks the response to determine if there are more pages.
+        Works with any Channeldock endpoint (products, suppliers, etc.)
 
         Args:
             response: The HTTP response object.
@@ -49,15 +50,24 @@ class ChanneldockPaginator(BaseAPIPaginator[int]):
         except Exception:
             return None
         
-        # Check if response indicates no more data
-        # Channeldock returns products_count and products array
-        if isinstance(data, dict):
-            products_count = data.get("products_count", 0)
-            products = data.get("products", [])
-            
-            # Stop if no products or fewer than page size
-            if products_count == 0 or len(products) < self.PAGE_SIZE:
-                return None
+        if not isinstance(data, dict):
+            return None
+        
+        # Find the data array and count in response
+        # Channeldock uses pattern: {entity}_count and {entity} array
+        # e.g., products_count/products, suppliers_count/suppliers
+        records_count = 0
+        records_list = []
+        
+        for key in data:
+            if key.endswith("_count") and isinstance(data[key], int):
+                records_count = data[key]
+            elif isinstance(data[key], list) and key not in ("response", "page", "page_size"):
+                records_list = data[key]
+        
+        # Stop if no records or fewer than page size
+        if records_count == 0 or len(records_list) < self.PAGE_SIZE:
+            return None
         
         # More pages available
         self._page += 1
