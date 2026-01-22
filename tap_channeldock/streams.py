@@ -164,10 +164,7 @@ class OrdersStream(ChanneldockStream):
         th.Property("api_id", th.IntegerType),
         th.Property("payment_id", th.StringType),
         th.Property("price_total", th.NumberType),
-        th.Property("price_shipping", th.NumberType),
-        th.Property("price_discount", th.NumberType),
         th.Property("price_currency", th.StringType),
-        th.Property("currency", th.StringType),
         th.Property("discount_total", th.NumberType),
         th.Property("vat_number", th.StringType),
         th.Property("total_weight", th.NumberType),
@@ -183,11 +180,9 @@ class OrdersStream(ChanneldockStream):
         th.Property("billing_house_number_ext", th.StringType),
         th.Property("billing_city", th.StringType),
         th.Property("billing_region", th.StringType),
-        th.Property("billing_zipcode", th.StringType),
         th.Property("billing_zip_code", th.StringType),
         th.Property("billing_country_code", th.StringType),
         th.Property("billing_email", th.StringType),
-        th.Property("billing_phone", th.StringType),
         th.Property("shipping_first_name", th.StringType),
         th.Property("shipping_last_name", th.StringType),
         th.Property("shipping_company", th.StringType),
@@ -198,25 +193,21 @@ class OrdersStream(ChanneldockStream):
         th.Property("shipping_house_number_ext", th.StringType),
         th.Property("shipping_city", th.StringType),
         th.Property("shipping_region", th.StringType),
-        th.Property("shipping_zipcode", th.StringType),
         th.Property("shipping_zip_code", th.StringType),
         th.Property("shipping_country_code", th.StringType),
         th.Property("shipping_email", th.StringType),
-        th.Property("shipping_phone", th.StringType),
         th.Property("shipping_phone_number", th.StringType),
         th.Property("shipping_service", th.StringType),
         th.Property("order_status", th.StringType),
         th.Property("order_date", th.DateTimeType),
-        th.Property("ship_on_date", th.DateTimeType),
+        th.Property("ship_on_date", th.BooleanType),
         th.Property("sync_date", th.DateTimeType),
         th.Property("updated_at", th.DateTimeType),
         th.Property("batch_id", th.IntegerType),
         th.Property("batch_title", th.StringType),
         th.Property("packaging_id", th.IntegerType),
         th.Property("order_products", th.StringType),
-        th.Property("notes", th.StringType),
         th.Property("extra_comment", th.StringType),
-        th.Property("raw_order_data", th.StringType),
     ).to_dict()
 
     def get_url_params(
@@ -252,7 +243,7 @@ class OrdersStream(ChanneldockStream):
         if not row:
             return None
 
-        for field in ["order_products", "raw_order_data"]:
+        for field in ["order_products"]:
             if field in row and isinstance(row[field], (list, dict)):
                 row[field] = json.dumps(row[field])
             elif field not in row:
