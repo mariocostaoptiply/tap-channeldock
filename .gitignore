@@ -151,3 +151,4 @@ catalog.json
 *.jsonl
 .secrets/
 .cursor/
+.claude/

@@ -63,7 +63,6 @@ class ProductsStream(ChanneldockStream):
         context: Context | None,
         next_page_token: int | None,
     ) -> dict[str, t.Any]:
-        """Return URL params with stocking_date filtering."""
         params = super().get_url_params(context, next_page_token)
         params["sort_attr"] = "stocking_date"
         params["sort_dir"] = "ASC"
@@ -84,7 +83,6 @@ class ProductsStream(ChanneldockStream):
         row: dict,
         context: Context | None = None,
     ) -> dict | None:
-        """Convert array fields to JSON strings."""
         if not row:
             return None
 
@@ -100,7 +98,6 @@ class ProductsStream(ChanneldockStream):
         self,
         context: Context | None = None,
     ) -> str | None:
-        """Return end_date as bookmark signpost."""
         return self._current_end_date
 
 
@@ -215,7 +212,6 @@ class OrdersStream(ChanneldockStream):
         context: Context | None,
         next_page_token: int | None,
     ) -> dict[str, t.Any]:
-        """Return URL params with updated_at filtering."""
         params: dict[str, t.Any] = {
             "page": next_page_token or 1,
             "order_status": "ALL",
@@ -239,7 +235,6 @@ class OrdersStream(ChanneldockStream):
         row: dict,
         context: Context | None = None,
     ) -> dict | None:
-        """Convert complex fields to JSON strings."""
         if not row:
             return None
 
@@ -255,7 +250,6 @@ class OrdersStream(ChanneldockStream):
         self,
         context: Context | None = None,
     ) -> str | None:
-        """Return updated_at_to as bookmark signpost."""
         return self._current_end_date
 
 
@@ -294,7 +288,6 @@ class DeliveriesStream(ChanneldockStream):
         context: Context | None,
         next_page_token: int | None,
     ) -> dict[str, t.Any]:
-        """Return URL params with updated_at and delivery_type filtering."""
         params: dict[str, t.Any] = {
             "page": next_page_token or 1,
             "sort_attr": "updated_at",
@@ -321,7 +314,6 @@ class DeliveriesStream(ChanneldockStream):
         row: dict,
         context: Context | None = None,
     ) -> dict | None:
-        """Convert complex fields to JSON strings."""
         if not row:
             return None
 
@@ -337,5 +329,4 @@ class DeliveriesStream(ChanneldockStream):
         self,
         context: Context | None = None,
     ) -> str | None:
-        """Return end_date as bookmark signpost."""
         return self._current_end_date
