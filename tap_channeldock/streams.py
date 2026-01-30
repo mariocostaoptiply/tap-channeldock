@@ -252,11 +252,10 @@ class OrdersStream(ChanneldockStream):
     ) -> str | None:
         return self._current_end_date
 
-
-class DeliveriesStream(ChanneldockStream):
+class InboundDeliveriesStream(ChanneldockStream):
     """Deliveries stream with updated_at incremental sync."""
 
-    name = "deliveries"
+    name = "inbound_deliveries"
     path = "/portal/api/v2/seller/delivery"
     primary_keys = ["id"]
     replication_key = "updated_at"
@@ -299,10 +298,85 @@ class DeliveriesStream(ChanneldockStream):
             params["updated_at"] = bookmark_value
             self.logger.info(f"[{self.name}] updated_at: {bookmark_value}")
 
-        delivery_type = self.config.get("delivery_type")
-        if delivery_type:
-            params["delivery_type"] = delivery_type
-            self.logger.info(f"[{self.name}] delivery_type: {delivery_type}")
+        params["delivery_type"] = "inbound"
+        self.logger.info(f"[{self.name}] delivery_type: inbound")
+
+        self._current_end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        self.logger.info(f"[{self.name}] end_date: {self._current_end_date}")
+
+        return params
+
+    def post_process(
+        self,
+        row: dict,
+        context: Context | None = None,
+    ) -> dict | None:
+        if not row:
+            return None
+
+        for field in ["supplier", "items"]:
+            if field in row and isinstance(row[field], (list, dict)):
+                row[field] = json.dumps(row[field])
+            elif field not in row:
+                row[field] = None
+
+        return row
+
+    def get_replication_key_signpost(
+        self,
+        context: Context | None = None,
+    ) -> str | None:
+        return self._current_end_date
+
+
+class OutboundDeliveriesStream(ChanneldockStream):
+    """Deliveries stream with updated_at incremental sync."""
+
+    name = "outbound_deliveries"
+    path = "/portal/api/v2/seller/delivery"
+    primary_keys = ["id"]
+    replication_key = "updated_at"
+    replication_method = "INCREMENTAL"
+    records_jsonpath = "$.deliveries[*]"
+
+    _current_end_date: str | None = None
+
+    schema = th.PropertiesList(
+        th.Property("id", th.IntegerType, required=True),
+        th.Property("delivery_type", th.StringType),
+        th.Property("ref", th.StringType),
+        th.Property("status", th.StringType),
+        th.Property("delivery_date", th.DateType),
+        th.Property("stocked_at", th.DateTimeType),
+        th.Property("created_at", th.DateTimeType),
+        th.Property("updated_at", th.DateTimeType),
+        th.Property("pallets", th.IntegerType),
+        th.Property("boxes", th.IntegerType),
+        th.Property("supplier_id", th.IntegerType),
+        th.Property("supplier", th.StringType),
+        th.Property("center_id", th.IntegerType),
+        th.Property("extra_description", th.StringType),
+        th.Property("items", th.StringType),
+    ).to_dict()
+
+    def get_url_params(
+        self,
+        context: Context | None,
+        next_page_token: int | None,
+    ) -> dict[str, t.Any]:
+        params: dict[str, t.Any] = {
+            "page": next_page_token or 1,
+            "sort_attr": "updated_at",
+            "sort_dir": "ASC",
+        }
+
+        bookmark_value = self.get_starting_replication_key_value(context)
+        if bookmark_value:
+            params["updated_at"] = bookmark_value
+            self.logger.info(f"[{self.name}] updated_at: {bookmark_value}")
+
+        params["delivery_type"] = "outbound"
+        self.logger.info(f"[{self.name}] delivery_type: outbound")
 
         self._current_end_date = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
         self.logger.info(f"[{self.name}] end_date: {self._current_end_date}")
